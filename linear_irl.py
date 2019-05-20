@@ -73,7 +73,7 @@ def normalise(vals):
     return (vals - min_val) / (max_val - min_val)
 
 
-def linear_irl(trans_probs, policy, gamma=0.9, l1=10, r_max=10):
+def linear_irl(trans_probs, policy, gamma=0.9, l1=10, r_max=1):
     number_of_states = trans_probs.shape[0]
     number_of_actions = trans_probs.shape[2]
 
@@ -123,119 +123,58 @@ def linear_irl(trans_probs, policy, gamma=0.9, l1=10, r_max=10):
     return rewards
 
 
-def irl_gridworld():
-    size = 10
-    env = GridworldEnv(shape=[size, size], targets=[size * size - 1], reward_value=5.0, punishment_value=-1.0)
+def irl(env, env_name='Grid World', gamma=0.3, l1=10, r_max=5):
     trans_probs = np.zeros((env.observation_space.n, env.observation_space.n, env.action_space.n))
     rewards = np.zeros(env.observation_space.n)
     for state, value in env.P.items():
         for action, value_2 in value.items():
             prob, next_state, reward, done = value_2[0]
-            # print(state, action, prob, next_state, reward, done)
             trans_probs[state][next_state][action] = prob
             rewards[next_state] = reward
 
-    policy, v = value_iteration(env)
-    print(100 * '-')
-    # print('RL - Value Iteration')
-    # print(100 * '-')
-    # print("Reshaped Grid Policy (0=up, 1=right, 2=down, 3=left):")
-    # print(np.reshape(np.argmax(policy, axis=1), env.shape))
-    # print("")
-    #
-    # print("Reshaped Grid Value Reward:")
-    # print(rewards.reshape(env.shape))
-    #
-    # print(100 * '-')
-    # print('IRL - Linear')
-    # print(100 * '-')
-    recovered_rewards = linear_irl(trans_probs, policy, gamma=0.3, l1=10, r_max=5)
-    # print("")
-    # print("Reshaped Grid Recovered Reward:")
-    # print(np.array(recovered_rewards).reshape(env.shape))
-    print(100 * '-')
+    policy, values = value_iteration(env, discount_factor=gamma)
+
+    recovered_rewards = linear_irl(trans_probs, policy, gamma, l1, r_max)
+    _, recovered_values = value_iteration(env)
 
     fig = plt.figure()
-    fig.suptitle('Linear IRL on Grid World', fontsize=16)
+    # TODO: Add spacing between title and plots
+    fig.suptitle('Linear IRL on ' + env_name, fontsize=16)
 
-    axs0 = fig.add_subplot(1, 3, 1, aspect='equal')
+    axs1 = fig.add_subplot(2, 2, 1, aspect='equal')
     fig.gca().invert_yaxis()
     fig.gca().xaxis.tick_top()
-    axs1 = fig.add_subplot(1, 3, 2, aspect='equal')
-    fig.gca().invert_yaxis()
-    fig.gca().xaxis.tick_top()
-    axs2 = fig.add_subplot(1, 3, 3, aspect='equal')
-    fig.gca().invert_yaxis()
-    fig.gca().xaxis.tick_top()
-
-    axs0.pcolor(v.reshape(env.shape))
-    axs0.set_title("Value")
-
-    axs1.pcolor(rewards.reshape(env.shape))
+    c1 = axs1.pcolor(rewards.reshape(env.shape))
     axs1.set_title("Reward")
+    fig.colorbar(c1, ax=axs1)
 
-    axs2.pcolor(np.array(recovered_rewards).reshape(env.shape))
-    axs2.set_title("Recovered reward")
-
-    fig.show()
-
-
-def irl_cliffwalking():
-    env = CliffWalkingEnv()
-    trans_probs = np.zeros((env.observation_space.n, env.observation_space.n, env.action_space.n))
-    rewards = np.zeros(env.observation_space.n)
-    for state, value in env.P.items():
-        for action, value_2 in value.items():
-            prob, next_state, reward, done = value_2[0]
-            # print(state, action, prob, next_state, reward, done)
-            trans_probs[state][next_state][action] = prob
-            rewards[state] = reward
-
-    policy, v = value_iteration(env)
-    # print(100 * '-')
-    # print('RL - Value Iteration')
-    # print(100 * '-')
-    # print("Reshaped Grid Policy (0=up, 1=right, 2=down, 3=left):")
-    # print(np.reshape(np.argmax(policy, axis=1), env.shape))
-    # print("")
-    #
-    # print("Reshaped Grid Value Reward:")
-    # print(rewards.reshape(env.shape))
-    #
-    # print(100 * '-')
-    print('IRL - Linear')
-    print(100 * '-')
-    recovered_rewards = linear_irl(trans_probs, policy, gamma=0.3, l1=10, r_max=5)
-    # print("")
-    print("Reshaped Grid Recovered Reward:")
-    print(np.array(recovered_rewards).reshape(env.shape))
-    print(100 * '-')
-
-    fig = plt.figure()
-    fig.suptitle('Linear IRL on Cliff Walking Env', fontsize=16)
-
-    axs0 = fig.add_subplot(1, 3, 1, aspect='equal')
+    axs2 = fig.add_subplot(2, 2, 2, aspect='equal')
     fig.gca().invert_yaxis()
     fig.gca().xaxis.tick_top()
-    axs1 = fig.add_subplot(1, 3, 2, aspect='equal')
+    c2 = axs2.pcolor(values.reshape(env.shape))
+    axs2.set_title("Value")
+    fig.colorbar(c2, ax=axs2)
+
+    axs3 = fig.add_subplot(2, 2, 3, aspect='equal')
     fig.gca().invert_yaxis()
     fig.gca().xaxis.tick_top()
-    axs2 = fig.add_subplot(1, 3, 3, aspect='equal')
+    c3 = axs3.pcolor(np.array(recovered_rewards).reshape(env.shape))
+    axs3.set_title("Recovered Reward")
+    fig.colorbar(c3, ax=axs3)
+
+    axs4 = fig.add_subplot(2, 2, 4, aspect='equal')
     fig.gca().invert_yaxis()
     fig.gca().xaxis.tick_top()
-
-    axs0.pcolor(v.reshape(env.shape))
-    axs0.set_title("Value")
-
-    axs1.pcolor(rewards.reshape(env.shape))
-    axs1.set_title("Reward")
-
-    axs2.pcolor(np.array(recovered_rewards).reshape(env.shape))
-    axs2.set_title("Recovered reward")
+    c4 = axs4.pcolor(recovered_values.reshape(env.shape))
+    axs4.set_title("Recovered Value")
+    fig.colorbar(c4, ax=axs4)
 
     fig.show()
 
 
 if __name__ == '__main__':
-    irl_gridworld()
-    # irl_cliffwalking()
+    size = 10
+    env = GridworldEnv(shape=[size, size], targets=[size * size - 1], reward_value=5.0, punishment_value=-1.0)
+    irl(env, env_name='Grid World')
+    env2 = CliffWalkingEnv()
+    irl(env2, 'Cliff Walking')
