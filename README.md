@@ -4,19 +4,8 @@ Implementation of Inverse Reinforcement Learning Algorithm (IRL). Mainly for exp
 
 # Implementation
 
-## Expert policy
-
-- Q-learning
-
-## IRL implementation
-
-- Linear IRL (Ng & Russell 2000) [[Paper](https://ai.stanford.edu/~ang/papers/icml00-irl.pdf)]
-
-# How to use
-
-1. git clone the repository.
-2. Execute the jupyter notebook code blocks in order.
-3. The notebook is explained in a very detailed manner for gaining deeper understanding into the code and results. Improvements and future work are desribed in the notebook.
+- Linear IRL [[Paper](https://ai.stanford.edu/~ang/papers/icml00-irl.pdf)][[Code](https://github.com/s-mawjee/inverse-reinforcement-learning/blob/master/linear_irl.py)]
+- MaxEnt IRL [[Paper](https://www.aaai.org/Papers/AAAI/2008/AAAI08-227.pdf)][[Code](https://github.com/s-mawjee/inverse-reinforcement-learning/blob/master/maxent_irl.py)]
 
 # Dependencies
 
@@ -30,8 +19,7 @@ Please feel free to create a Pull Request for adding implementations of the IRL 
 
 # References
 
-- Algorithms for Inverse Reinforcement Learning [[Paper](https://ai.stanford.edu/~ang/papers/icml00-irl.pdf)]
 
-* Gridworld environments [[dennybritz](https://github.com/dennybritz/reinforcement-learning)]
+* Grid world environments [[dennybritz](https://github.com/dennybritz/reinforcement-learning)]
 
-* Inverse Reinforcement Learning Code [[yrlu](https://github.com/yrlu/irl-imitation)] [[justinjfu](https://github.com/justinjfu/inverse_rl)] [[vjg28](https://github.com/vjg28/Linear-Inverse-RL-algorithms)]
+* Inverse Reinforcement Learning Code [[justinjfu](https://github.com/justinjfu/inverse_rl)] [[vjg28](https://github.com/vjg28/Linear-Inverse-RL-algorithms)] [[yrlu](https://github.com/yrlu/irl-imitation)]
