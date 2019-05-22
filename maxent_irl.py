@@ -1,57 +1,8 @@
+import value_iteration as vi
 import numpy as np
 from environments.gridworld import GridworldEnv
 from environments.cliff_walking import CliffWalkingEnv
 import matplotlib.pyplot as plt
-
-
-def value_iteration(transition_probs, rewards, theta=0.001, discount_factor=0.9):
-    number_of_states, number_of_actions, _ = transition_probs.shape
-
-    def one_step_lookahead(state, V):
-        """
-        Helper function to calculate the value for all action in a given state.
-
-        Args:
-            state: The state to consider (int)
-            V: The value to use as an estimator, Vector of length number_of_states
-
-        Returns:
-            A vector of length number_of_actions containing the expected value of each action.
-        """
-        A = np.zeros(number_of_actions)
-        for a in range(number_of_actions):
-            for next_state, prob in enumerate(transition_probs[state][a]):
-                reward = rewards[state]
-                A[a] += prob * (reward + discount_factor * V[next_state])
-        return A
-
-    V = np.zeros(number_of_states)
-    while True:
-        # Stopping condition
-        delta = 0
-        # Update each state...
-        for s in range(number_of_states):
-            # Do a one-step lookahead to find the best action
-            A = one_step_lookahead(s, V)
-            best_action_value = np.max(A)
-            # Calculate delta across all states seen so far
-            delta = max(delta, np.abs(best_action_value - V[s]))
-            # Update the value function. Ref: Sutton book eq. 4.10.
-            V[s] = best_action_value
-            # Check if we can stop
-        if delta < theta:
-            break
-
-    # Create a deterministic policy using the optimal value function
-    policy = np.zeros([number_of_states, number_of_actions])
-    for s in range(number_of_states):
-        # One step lookahead to find the best action for this state
-        A = one_step_lookahead(s, V)
-        best_action = np.argmax(A)
-        # Always take the best action
-        policy[s, best_action] = 1.0
-
-    return policy, V
 
 
 def normalise(values):
@@ -104,7 +55,7 @@ def get_expected_state_visitation_frequencies(transition_probs, trajectories, re
 
     if policy == None:
         # compute policy
-        policy, _ = value_iteration(transition_probs, rewards)
+        policy, _ = vi.value_iteration_cython(transition_probs, rewards, theta=0.001, discount_factor=0.9)
 
     number_of_states, number_of_actions, _ = np.shape(transition_probs)
 
@@ -125,7 +76,7 @@ def get_expected_state_visitation_frequencies(transition_probs, trajectories, re
     return p
 
 
-def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, number_of_iterations):
+def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, number_of_iterations, print_out=False):
     # Initialise weights
     theta = np.random.uniform(size=(feature_map.shape[1],)) * 0.1
 
@@ -135,7 +86,7 @@ def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, numbe
     # Gradient descent on theta.
     for iteration in range(number_of_iterations):
 
-        if iteration % (number_of_iterations / 20) == 0:
+        if print_out and iteration % (number_of_iterations / 20) == 0:
             print('iteration: {}/{}'.format(iteration, number_of_iterations))
 
         # compute reward function
@@ -154,8 +105,8 @@ def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, numbe
     return normalise(rewards)
 
 
-def irl(env, env_name='Grid World', number_irl_iterations=20, learning_rate=0.1, number_of_trajectories=1000,
-        max_length_of_trajectory=40):
+def irl(env, env_name='Grid World', number_irl_iterations=10, learning_rate=0.09, number_of_trajectories=10,
+        max_length_of_trajectory=30):
     transition_probs = np.zeros((env.observation_space.n, env.action_space.n, env.observation_space.n))
     rewards = np.zeros(env.observation_space.n)
 
@@ -165,7 +116,7 @@ def irl(env, env_name='Grid World', number_irl_iterations=20, learning_rate=0.1,
             transition_probs[state, action, next_state] = prob
             rewards[next_state] = reward
 
-    policy, values = value_iteration(transition_probs, rewards)
+    policy, values = vi.value_iteration_cython(transition_probs, rewards, theta=0.001, discount_factor=0.9)
 
     # use identity matrix as feature
     feature_map = np.eye(env.observation_space.n)
@@ -182,7 +133,7 @@ def irl(env, env_name='Grid World', number_irl_iterations=20, learning_rate=0.1,
                                    number_of_iterations=number_irl_iterations)
 
     print(np.array(recovered_rewards).reshape(env.shape))
-    recovered_policy, recovered_values = value_iteration(transition_probs, recovered_rewards)
+    recovered_policy, recovered_values = vi.value_iteration_cython(transition_probs, rewards, theta=0.001, discount_factor=0.9)
 
     fig = plt.figure()
     # TODO: Add spacing between title and plots
@@ -212,7 +163,7 @@ def irl(env, env_name='Grid World', number_irl_iterations=20, learning_rate=0.1,
     axs4 = fig.add_subplot(2, 2, 4, aspect='equal')
     fig.gca().invert_yaxis()
     fig.gca().xaxis.tick_top()
-    c4 = axs4.pcolor(recovered_rewards.reshape(env.shape))
+    c4 = axs4.pcolor(recovered_values.reshape(env.shape))
     axs4.set_title("Recovered Value")
     fig.colorbar(c4, ax=axs4)
 
@@ -223,8 +174,12 @@ def irl(env, env_name='Grid World', number_irl_iterations=20, learning_rate=0.1,
 
 if __name__ == '__main__':
     np.random.seed(1)
-    env = GridworldEnv(shape=[5, 5], targets=[24])
+    print('Grid World')
+    env = GridworldEnv(shape=[10, 10], targets=[99])
+    env.seed(42)
     recovered_policy_grid_world = irl(env, env_name='Grid World')
-
+    print()
+    print('Cliff Walking')
     env2 = CliffWalkingEnv()
+    env2.seed(42)
     recovered_policy_cliff = irl(env2, env_name='Cliff Walking')
