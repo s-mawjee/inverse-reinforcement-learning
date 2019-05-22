@@ -108,13 +108,13 @@ def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, numbe
 def irl(env, env_name='Grid World', number_irl_iterations=10, learning_rate=0.09, number_of_trajectories=10,
         max_length_of_trajectory=30):
     transition_probs = np.zeros((env.observation_space.n, env.action_space.n, env.observation_space.n))
-    rewards = np.zeros(env.observation_space.n)
+    rewards = np.ones(env.observation_space.n) * -1
 
     for state, value in env.P.items():
         for action, value_2 in value.items():
             prob, next_state, reward, done = value_2[0]
             transition_probs[state, action, next_state] = prob
-            rewards[state] = reward
+            rewards[next_state] = reward
 
     policy, values = vi.value_iteration_cython(transition_probs, rewards, theta=0.001, discount_factor=0.9)
 
