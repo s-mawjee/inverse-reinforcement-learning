@@ -70,13 +70,13 @@ def get_expected_state_visitation_frequencies(transition_probs, trajectories, re
     for s in range(number_of_states):
         for t in range(T - 1):
             mu[s, t + 1] = sum(
-                [mu[pre_s, t] * transition_probs[pre_s][np.argmax(policy[pre_s])][s] for pre_s in
+                [mu[pre_s, t] * transition_probs[pre_s][np.argmax(policy[s])][s] for pre_s in
                  range(number_of_states)])
             p = np.sum(mu, 1)
     return p
 
 
-def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, number_of_iterations, print_out=False):
+def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, number_of_iterations, print_out=True):
     # Initialise weights
     theta = np.random.uniform(size=(feature_map.shape[1],)) * 0.1
 
@@ -114,7 +114,7 @@ def irl(env, env_name='Grid World', number_irl_iterations=10, learning_rate=0.09
         for action, value_2 in value.items():
             prob, next_state, reward, done = value_2[0]
             transition_probs[state, action, next_state] = prob
-            rewards[next_state] = reward
+            rewards[state] = reward
 
     policy, values = vi.value_iteration_cython(transition_probs, rewards, theta=0.001, discount_factor=0.9)
 
@@ -133,7 +133,7 @@ def irl(env, env_name='Grid World', number_irl_iterations=10, learning_rate=0.09
                                    number_of_iterations=number_irl_iterations)
 
     print(np.array(recovered_rewards).reshape(env.shape))
-    recovered_policy, recovered_values = vi.value_iteration_cython(transition_probs, rewards, theta=0.001, discount_factor=0.9)
+    recovered_policy, recovered_values = vi.value_iteration_cython(transition_probs, recovered_rewards, theta=0.001, discount_factor=0.9)
 
     fig = plt.figure()
     # TODO: Add spacing between title and plots
