@@ -24,6 +24,8 @@ class WindyGridworldEnv(discrete.DiscreteEnv):
         new_position = self._limit_coordinates(new_position).astype(int)
         new_state = np.ravel_multi_index(tuple(new_position), self.shape)
         is_done = tuple(new_position) == (3, 7)
+        if is_done:
+            return [(1.0, new_state, 10.0, is_done)]
         return [(1.0, new_state, -1.0, is_done)]
 
     def __init__(self):

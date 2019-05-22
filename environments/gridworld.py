@@ -74,10 +74,25 @@ class GridworldEnv(discrete.DiscreteEnv):
                 ns_down = s if y == (MAX_Y - 1) else s + MAX_X
                 ns_left = s if x == 0 else s - 1
 
-                P[s][UP] = [(1.0, ns_up, reward, is_done(ns_up))]
-                P[s][RIGHT] = [(1.0, ns_right, reward, is_done(ns_right))]
-                P[s][DOWN] = [(1.0, ns_down, reward, is_done(ns_down))]
-                P[s][LEFT] = [(1.0, ns_left, reward, is_done(ns_left))]
+                if is_done(ns_up):
+                    P[s][UP] = [(1.0, ns_up, reward_value, True)]
+                else:
+                    P[s][UP] = [(1.0, ns_up, reward, False)]
+
+                if is_done(ns_right):
+                    P[s][RIGHT] = [(1.0, ns_right, reward_value, True)]
+                else:
+                    P[s][RIGHT] = [(1.0, ns_right, reward, False)]
+
+                if is_done(ns_down):
+                    P[s][DOWN] = [(1.0, ns_down, reward_value, True)]
+                else:
+                    P[s][DOWN] = [(1.0, ns_down, reward, False)]
+
+                if is_done(ns_left):
+                    P[s][LEFT] = [(1.0, ns_left, reward_value, True)]
+                else:
+                    P[s][LEFT] = [(1.0, ns_left, reward, False)]
 
             it.iternext()
 
