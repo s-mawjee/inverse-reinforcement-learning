@@ -70,7 +70,7 @@ def get_expected_state_visitation_frequencies(transition_probs, trajectories, re
     for s in range(number_of_states):
         for t in range(T - 1):
             mu[s, t + 1] = sum(
-                [mu[pre_s, t] * transition_probs[pre_s][np.argmax(policy[s])][s] for pre_s in
+                [mu[pre_s, t] * transition_probs[pre_s][np.argmax(policy[pre_s])][s] for pre_s in
                  range(number_of_states)])
             p = np.sum(mu, 1)
     return p
@@ -105,7 +105,7 @@ def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, numbe
     return normalise(rewards)
 
 
-def irl(env, env_name='Grid World', number_irl_iterations=10, learning_rate=0.09, number_of_trajectories=10,
+def irl(env, env_name='Grid World', number_irl_iterations=10, learning_rate=0.1, number_of_trajectories=10,
         max_length_of_trajectory=30):
     transition_probs = np.zeros((env.observation_space.n, env.action_space.n, env.observation_space.n))
     rewards = np.ones(env.observation_space.n) * -1
