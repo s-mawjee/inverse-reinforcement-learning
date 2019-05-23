@@ -4,6 +4,15 @@ from environments.gridworld import GridworldEnv
 from environments.cliff_walking import CliffWalkingEnv
 import matplotlib.pyplot as plt
 
+def argmax(actions):
+    max = np.max(actions)
+    index_array= []
+    for index, value in enumerate(actions):
+        if max == value:
+            index_array.append(index)
+
+    action = np.random.choice(index_array)
+    return  action
 
 def normalise(values):
     min_val = np.min(values)
@@ -17,7 +26,7 @@ def generate_trajectories(env, policy, number_of_trajectories=100, max_length_of
         episode = []
         state = env.reset()
         for _ in range(max_length_of_trajectory):
-            action = np.argmax(policy[state])
+            action = argmax(policy[state])
             next_state, reward, done, _ = env.step(action)
             episode.append((state, action, next_state, reward, done))
             state = next_state
@@ -57,7 +66,7 @@ def get_expected_state_visitation_frequencies(transition_probs, trajectories, re
         # compute policy
         policy, _ = vi.value_iteration_cython(transition_probs, rewards, theta=0.001, discount_factor=0.9)
 
-    number_of_states, number_of_actions, _ = np.shape(transition_probs)
+    number_of_states, _, _ = np.shape(transition_probs)
 
     T = len(trajectories[0])
     # mu[s, t] is the prob of visiting state s at time t
@@ -80,7 +89,7 @@ def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, numbe
     # Initialise weights
     theta = np.random.uniform(size=(feature_map.shape[1],)) * 0.1
 
-    # Calculate the feature expectations \tilde{phi}.
+    # Calculate the feature expectations.
     feature_expectations = get_feature_expectations(feature_map, trajectories)
 
     # Gradient descent on theta.
@@ -108,7 +117,7 @@ def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, numbe
 def irl(env, env_name='Grid World', number_irl_iterations=10, learning_rate=0.1, number_of_trajectories=10,
         max_length_of_trajectory=30):
     transition_probs = np.zeros((env.observation_space.n, env.action_space.n, env.observation_space.n))
-    rewards = np.ones(env.observation_space.n) * -1
+    rewards = np.zeros(env.observation_space.n)
 
     for state, value in env.P.items():
         for action, value_2 in value.items():
