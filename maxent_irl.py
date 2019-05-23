@@ -14,11 +14,6 @@ def argmax(actions):
     action = np.random.choice(index_array)
     return  action
 
-def normalise(values):
-    min_val = np.min(values)
-    max_val = np.max(values)
-    return (values - min_val) / (max_val - min_val)
-
 
 def generate_trajectories(env, policy, number_of_trajectories=100, max_length_of_trajectory=20):
     trajectories = []
@@ -111,7 +106,7 @@ def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, numbe
         theta += learning_rate * grad
 
     rewards = np.dot(feature_map, theta)
-    return normalise(rewards)
+    return np.exp(rewards)/sum(np.exp(rewards))
 
 
 def irl(env, env_name='Grid World', number_irl_iterations=10, learning_rate=0.1, number_of_trajectories=10,
