@@ -10,6 +10,7 @@ ctypedef np.float_t FTYPE_t
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
+
 cdef np.ndarray[FTYPE_t, ndim=1] one_step_lookahead_cython(int state_, np.ndarray[FTYPE_t, ndim=1] V, np.ndarray[FTYPE_t, ndim=3] transition_probs, np.ndarray[FTYPE_t, ndim=1] rewards, float discount_factor, int number_of_actions):
     cdef int state = state_
     cdef np.ndarray[FTYPE_t, ndim=1] A = np.zeros(number_of_actions)
@@ -56,7 +57,8 @@ def value_iteration_cython(np.ndarray[FTYPE_t, ndim=3] transition_probs, np.ndar
     s = 0
     for s in range(number_of_states):
         A = one_step_lookahead_cython(s, V, transition_probs, rewards, discount_factor, number_of_actions)
-        best_action = np.argmax(A)
-        policy[s, best_action] = 1.0
+        # A_norm = normalise(A)
+        A_norm = np.exp(A)/sum(np.exp(A))
+        policy[s] = A_norm
 
     return policy, V
