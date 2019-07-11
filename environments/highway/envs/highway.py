@@ -8,7 +8,7 @@ NUMBER_OF_ACTIONS = 3  # 0 left, 1 stay, 2 right
 LEFT = 0
 RIGHT = 2
 # STAY = 1
-ROAD_LENGTH = 2
+ROAD_LENGTH = 3
 
 
 class Highway(gym.Env):
@@ -29,22 +29,25 @@ class Highway(gym.Env):
 
         # print('reward', self.reward, 'collided', self.collided_reward, 'grass', self.grass_reward)
 
-        self.possible_states = []
-        self.stat_to_int = defaultdict(lambda: -1)
+        self.possible_states = []  # np.zeros((self.observation_space.n, self.number_lanes + 2), dtype=np.int32)
+        self.state_to_int = defaultdict(lambda: -1)
+        self.state_to_feature = np.zeros(
+            (self.observation_space.n, len(self.getStateFeature([0, 0, 0, 0, 0]))))
         index = 0
         for i in range(self.number_lanes + 2):
             for j in range(1, self.road_length + 1):
                 for k in range(1, self.road_length + 1):
                     for l in range(1, self.road_length + 1):
                         for m in range(2):
-                            self.possible_states.append([i, j, k, l, m])
-                            self.stat_to_int[str([i, j, k, l, m])] = index
+                            s = [i, j, k, l, m]
+                            self.possible_states.append(s)
+                            self.state_to_int[str(s)] = index
+                            self.state_to_feature[index] = self.getStateFeature(s)
                             index = index + 1
 
         index = np.random.choice(range(len(self.possible_states)), 1)[0]
         self.current_state = self.possible_states[index][:]
-        # print('#states', len(self.possible_states))
-
+    
     def seed(self, seed=None):
         seeding.np_random(seed)
         # self.road.seed(seed)
@@ -80,19 +83,19 @@ class Highway(gym.Env):
         state[2] = state[2] - 1
         state[3] = state[3] - 1
         if (state[1] == 0):
-            i = range(1, self.road_length + 1);
+            i = range(1, self.road_length + 1)
         else:
-            i = range(state[1], state[1] + 1);
+            i = range(state[1], state[1] + 1)
 
         if (state[2] == 0):
-            j = range(1, self.road_length + 1);
+            j = range(1, self.road_length + 1)
         else:
-            j = range(state[2], state[2] + 1);
+            j = range(state[2], state[2] + 1)
 
         if (state[3] == 0):
-            k = range(1, self.road_length + 1);
+            k = range(1, self.road_length + 1)
         else:
-            k = range(state[3], state[3] + 1);
+            k = range(state[3], state[3] + 1)
 
         if state[0] == 0 or state[0] == self.number_lanes + 1:
             state[-1] = 0
@@ -113,6 +116,54 @@ class Highway(gym.Env):
 
         return succ_states
 
+    def getPredecessorPossibleState(self, next_state, action):
+        predecessor_states = []
+        state = next_state[:]
+        predecessor_current_lane = None
+        if action == RIGHT:
+            # moved into right wall
+            if next_state[0] == self.number_lanes + 1:
+                predecessor_current_lane = self.number_lanes + 1
+
+            # move one lane left if not in 0 lane
+            elif next_state[0] != 0:
+                predecessor_current_lane = next_state[0] - 1
+
+        elif action == LEFT:
+            # move into left wall
+            if next_state[0] == 0:
+                predecessor_current_lane = 0
+
+            # move one lane right if not at last lane
+            elif next_state[0] != self.number_lanes + 1:
+                predecessor_current_lane = next_state[0] + 1
+
+        else:  # straight
+            predecessor_current_lane = next_state[0]
+
+        if predecessor_current_lane != None:
+            state[0] = predecessor_current_lane
+            state[1] = state[1] + 1
+            state[2] = state[2] + 1
+            state[3] = state[3] + 1
+
+            i = [1]
+            j = [1]
+            k = [1]
+            if (state[1] <= self.road_length):
+                i.append(state[1])
+            if (state[2] <= self.road_length):
+                j.append(state[2])
+            if (state[3] <= self.road_length):
+                k.append(state[3])
+
+            for newi in i:
+                for newj in j:
+                    for newk in k:
+                        new_state = [predecessor_current_lane, newi, newj, newk, 0]
+                        predecessor_states.append(new_state)
+        return predecessor_states
+
     def reset(self):
         index = np.random.choice(range(len(self.possible_states)), 1)[0]
         self.current_state = self.possible_states[index][:]
@@ -123,3 +174,23 @@ class Highway(gym.Env):
 
     def close(self):
         pass
+
+    def getStateFeatureFunction(self):
+        return self.getStateFeature
+
+    def getStateFeature(self, state):
+        currentLane = np.zeros(self.number_lanes + 2, dtype=np.int8)
+        currentLane[state[0]] = 1
+
+        lane1 = np.zeros(self.road_length, dtype=np.int8)
+        lane2 = np.zeros(self.road_length, dtype=np.int8)
+        lane3 = np.zeros(self.road_length, dtype=np.int8)
+
+        lane1[state[1] - 1] = 1  # zero index is a waste
+        lane2[state[2] - 1] = 1
+        lane3[state[3] - 1] = 1
+
+        collided = np.zeros(2, dtype=np.int8)
+        collided[state[4]] = 1
+
+        return np.concatenate((currentLane, lane1, lane2, lane3, collided), axis=0)

@@ -4,15 +4,16 @@ from environments.gridworld import GridworldEnv
 from environments.cliff_walking import CliffWalkingEnv
 import matplotlib.pyplot as plt
 
+
 def argmax(actions):
     max = np.max(actions)
-    index_array= []
+    index_array = []
     for index, value in enumerate(actions):
         if max == value:
             index_array.append(index)
 
     action = np.random.choice(index_array)
-    return  action
+    return action
 
 
 def generate_trajectories(env, policy, number_of_trajectories=100, max_length_of_trajectory=20):
@@ -104,9 +105,13 @@ def maxent_irl(feature_map, trajectories, transition_probs, learning_rate, numbe
 
         # update params
         theta += learning_rate * grad
+        # # Clip theta
+        # for j in range(len(theta)):
+        #     if theta[j] < 0:
+        #         theta[j] = 0
 
     rewards = np.dot(feature_map, theta)
-    return np.exp(rewards)/sum(np.exp(rewards))
+    return np.exp(rewards) / sum(np.exp(rewards))
 
 
 def irl(env, env_name='Grid World', number_irl_iterations=10, learning_rate=0.1, number_of_trajectories=10,
@@ -137,7 +142,8 @@ def irl(env, env_name='Grid World', number_irl_iterations=10, learning_rate=0.1,
                                    number_of_iterations=number_irl_iterations)
 
     print(np.array(recovered_rewards).reshape(env.shape))
-    recovered_policy, recovered_values = vi.value_iteration_cython(transition_probs, recovered_rewards, theta=0.001, discount_factor=0.9)
+    recovered_policy, recovered_values = vi.value_iteration_cython(transition_probs, recovered_rewards, theta=0.001,
+                                                                   discount_factor=0.9)
 
     fig = plt.figure()
     # TODO: Add spacing between title and plots
@@ -179,11 +185,13 @@ def irl(env, env_name='Grid World', number_irl_iterations=10, learning_rate=0.1,
 if __name__ == '__main__':
     np.random.seed(1)
     print('Grid World')
-    env = GridworldEnv(shape=[10, 10], targets=[99])
+    env = GridworldEnv(shape=[10, 10], targets=[45])
     env.seed(42)
-    recovered_policy_grid_world = irl(env, env_name='Grid World')
+    recovered_policy_grid_world = irl(env, env_name='Grid World', number_irl_iterations=20, learning_rate=0.3,
+                                      number_of_trajectories=100,
+                                      max_length_of_trajectory=30)
     print()
-    print('Cliff Walking')
-    env2 = CliffWalkingEnv()
-    env2.seed(42)
-    recovered_policy_cliff = irl(env2, env_name='Cliff Walking')
+    # print('Cliff Walking')
+    # env2 = CliffWalkingEnv()
+    # env2.seed(42)
+    # recovered_policy_cliff = irl(env2, env_name='Cliff Walking')
